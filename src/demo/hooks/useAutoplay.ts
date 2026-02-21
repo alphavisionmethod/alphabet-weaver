@@ -6,6 +6,7 @@ type AutoplayAction =
   | { type: 'workflow'; action: 'start' | 'advance' | 'approve' | 'back'; workflowId?: WorkflowId }
   | { type: 'intel'; tab: IntelTabId }
   | { type: 'narrate'; text: string }
+  | { type: 'dismiss_attack' }
   | { type: 'pause' };
 
 interface AutoplayStep {
@@ -29,7 +30,7 @@ const CINEMATIC_SEQUENCE: AutoplayStep[] = [
   { actions: [{ type: 'workflow', action: 'start', workflowId: 'wire-transfer' }, { type: 'intel', tab: 'drift' }], delay: 3000, narration: 'Adversarial Drift Simulator: stress-testing against 6 failure scenarios…' },
   { actions: [{ type: 'workflow', action: 'advance', workflowId: 'wire-transfer' }], delay: 3000, narration: 'Risk score 32%. Typosquat attack detected — autonomy throttled to L0.' },
   { actions: [{ type: 'intel', tab: 'meta' }], delay: 3000, narration: 'Meta-reliability drops to 65%. System escalates to human approval.' },
-  { actions: [{ type: 'workflow', action: 'approve' }], delay: 2500, narration: 'Dual-signature confirmed. Wire approved with full audit trail.' },
+  { actions: [{ type: 'workflow', action: 'approve' }, { type: 'dismiss_attack' }], delay: 2500, narration: 'Dual-signature confirmed. Wire approved with full audit trail.' },
   { actions: [{ type: 'intel', tab: 'decay' }], delay: 3500, narration: 'Confidence Decay Forecast: predicting reliability over next 50 decisions.' },
   { actions: [{ type: 'workflow', action: 'back' }], delay: 2000 },
 
@@ -49,51 +50,57 @@ const CINEMATIC_SEQUENCE: AutoplayStep[] = [
 export function useAutoplay() {
   const {
     autoplayActive, stopAutoplay, setActiveWorkflow,
-    advanceWorkflow, approveWire, resetDemo, setNarration, setIntelTab,
+    advanceWorkflow, approveWire, resetDemo, setNarration, setIntelTab, dismissAttack,
   } = useDemo();
+
+  const fnsRef = useRef({ setActiveWorkflow, advanceWorkflow, approveWire, stopAutoplay, setNarration, setIntelTab, dismissAttack });
+  fnsRef.current = { setActiveWorkflow, advanceWorkflow, approveWire, stopAutoplay, setNarration, setIntelTab, dismissAttack };
+
   const stepRef = useRef(0);
   const timerRef = useRef<ReturnType<typeof setTimeout>>();
 
   const runStep = useCallback(() => {
     if (stepRef.current >= CINEMATIC_SEQUENCE.length) {
-      stopAutoplay();
+      fnsRef.current.stopAutoplay();
       return;
     }
 
     const step = CINEMATIC_SEQUENCE[stepRef.current];
+    const fns = fnsRef.current;
 
-    // Set narration first if present
     if (step.narration) {
-      setNarration(step.narration);
+      fns.setNarration(step.narration);
     }
 
-    // Execute all actions in this step
     for (const action of step.actions) {
       switch (action.type) {
         case 'workflow':
           switch (action.action) {
             case 'start':
               if (action.workflowId) {
-                setActiveWorkflow(action.workflowId);
-                advanceWorkflow(action.workflowId);
+                fns.setActiveWorkflow(action.workflowId);
+                fns.advanceWorkflow(action.workflowId);
               }
               break;
             case 'advance':
-              if (action.workflowId) advanceWorkflow(action.workflowId);
+              if (action.workflowId) fns.advanceWorkflow(action.workflowId);
               break;
             case 'approve':
-              approveWire();
+              fns.approveWire();
               break;
             case 'back':
-              setActiveWorkflow(null);
+              fns.setActiveWorkflow(null);
               break;
           }
           break;
         case 'intel':
-          setIntelTab(action.tab);
+          fns.setIntelTab(action.tab);
+          break;
+        case 'dismiss_attack':
+          fns.dismissAttack();
           break;
         case 'narrate':
-          setNarration(action.text);
+          fns.setNarration(action.text);
           break;
         case 'pause':
           break;
@@ -102,13 +109,14 @@ export function useAutoplay() {
 
     stepRef.current++;
     timerRef.current = setTimeout(runStep, step.delay);
-  }, [setActiveWorkflow, advanceWorkflow, approveWire, stopAutoplay, setNarration, setIntelTab]);
+  }, []); // No deps — uses refs
 
   useEffect(() => {
     if (autoplayActive) {
       resetDemo();
       stepRef.current = 0;
-      timerRef.current = setTimeout(runStep, 1200);
+      // Small delay to let reset settle before starting
+      timerRef.current = setTimeout(runStep, 1500);
     } else {
       if (timerRef.current) clearTimeout(timerRef.current);
     }
