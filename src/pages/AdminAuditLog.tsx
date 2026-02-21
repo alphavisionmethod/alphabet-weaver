@@ -23,8 +23,7 @@ export default function AdminAuditLog() {
 
   const fetchLog = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('admin_audit_log')
+    const { data, error } = await (supabase.from as any)('admin_audit_log')
       .select('*')
       .order('created_at', { ascending: false })
       .limit(100);

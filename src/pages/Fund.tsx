@@ -98,7 +98,7 @@ const Fund = () => {
     const fetchTiers = async () => {
       try {
         const { data, error } = await supabase
-          .from("donation_tiers" as any)
+          .from("donation_tiers")
           .select("*")
           .eq("is_active", true)
           .order("display_order", { ascending: true });
@@ -141,13 +141,13 @@ const Fund = () => {
     setErrors({});
     setIsSubmitting(true);
     try {
-      await supabase.from("donations" as any).insert({
+      await supabase.from("donations").insert({
         name: formData.name || null,
         email: formData.email,
         amount,
         tier: selectedTier,
         message: formData.message || null,
-      } as any);
+      });
 
       const { data, error } = await supabase.functions.invoke("create-checkout", {
         body: {

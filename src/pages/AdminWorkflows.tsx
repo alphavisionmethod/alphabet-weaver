@@ -59,8 +59,7 @@ const AdminWorkflows = () => {
 
   const fetchWorkflows = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("workflow_templates")
+    const { data, error } = await (supabase.from as any)("workflow_templates")
       .select("*, workflow_steps(*)")
       .order("audience_type")
       .order("key");
@@ -77,9 +76,8 @@ const AdminWorkflows = () => {
     const order = ["OFF", "SHADOW", "LIVE"];
     const next = order[(order.indexOf(wf.status) + 1) % order.length];
 
-    const { error } = await supabase
-      .from("workflow_templates")
-      .update({ status: next as any })
+    const { error } = await (supabase.from as any)("workflow_templates")
+      .update({ status: next })
       .eq("id", wf.id);
 
     if (error) {
@@ -88,7 +86,7 @@ const AdminWorkflows = () => {
       setWorkflows(prev => prev.map(w => w.id === wf.id ? { ...w, status: next } : w));
 
       // Audit log
-      await supabase.from("admin_audit_log").insert({
+      await (supabase.from as any)("admin_audit_log").insert({
         action: "WORKFLOW_STATUS_CHANGED",
         entity_type: "workflow_template",
         entity_id: wf.id,
@@ -97,7 +95,7 @@ const AdminWorkflows = () => {
       });
 
       // Event
-      await supabase.from("events").insert({
+      await (supabase.from as any)("events").insert({
         event_type: "WORKFLOW_TOGGLED" as any,
         payload: { workflow_key: wf.key, old_status: wf.status, new_status: next },
       });

@@ -1,9 +1,12 @@
-import { useId, useMemo, useState, useRef, useEffect } from 'react';
+import { useId, useMemo, useState, useRef, useEffect, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createPortal } from 'react-dom';
 import type { AvatarSkinState } from '../../types';
 import { useDemo } from '../../store';
 import { CommandPanel } from './CommandPanel';
+import { WaveformVisualizer } from '../ui/WaveformVisualizer';
+
+const AvatarOrb3D = lazy(() => import('./AvatarOrb3D').then(m => ({ default: m.AvatarOrb3D })));
 
 const STATE_COLORS: Record<AvatarSkinState, { ring: number; glow: number }> = {
   IDLE: { ring: 0.2, glow: 0 },
@@ -66,51 +69,42 @@ interface SkinProps {
 }
 
 function DesktopSkin({ state, config, className, onClick }: SkinProps) {
-  const isBusy = state === 'THINKING';
-  const isActive = state !== 'IDLE';
-
   return (
     <button onClick={onClick} className={`flex items-center gap-3 cursor-pointer group ${className}`}>
-      <div className="relative w-12 h-12">
-        {/* Outer glow */}
-        <motion.div
-          className="absolute inset-0 rounded-full blur-xl"
-          style={{ background: 'linear-gradient(135deg, hsl(var(--primary) / 0.35), hsl(var(--accent) / 0.25))' }}
-          animate={isBusy
-            ? { scale: [1, 1.3, 1], opacity: [0.4, 0.7, 0.4] }
-            : { scale: [1, 1.08, 1], opacity: [0.2, 0.35, 0.2] }
-          }
-          transition={{ duration: isBusy ? 1.2 : 3.5, repeat: Infinity, ease: 'easeInOut' }}
-        />
-        {/* Core gradient */}
-        <div
-          className="absolute inset-0 rounded-full opacity-85"
-          style={{ background: 'linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)))' }}
-        />
-        {/* Inner light */}
-        <div className="absolute inset-1 rounded-full bg-background/80 backdrop-blur-md" />
-        {/* Breathing ring */}
-        <motion.div
-          className="absolute inset-0 rounded-full border border-primary/20"
-          animate={{ scale: [1, 1.06, 1] }}
-          transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-        />
-        {/* Active pulse ring */}
-        {isActive && (
-          <motion.div
-            className="absolute -inset-1 rounded-full border-2 border-primary/40"
-            animate={{ scale: [1, 1.15, 1], opacity: [0.5, 0, 0.5] }}
-            transition={{ duration: 1.8, repeat: Infinity }}
-          />
-        )}
-      </div>
+      <Suspense fallback={<DesktopSkinFallback state={state} />}>
+        <AvatarOrb3D state={state} size={48} />
+      </Suspense>
       <div className="flex flex-col">
         <span className="text-xs font-semibold text-foreground tracking-tight">SITA</span>
-        <span className="text-[10px] text-muted-foreground font-medium tracking-wide">
-          {state === 'IDLE' ? 'Ready' : state === 'THINKING' ? 'Processing…' : state === 'CONFIRMING' ? 'Confirmed' : state === 'WARNING' ? 'Attention' : state}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] text-muted-foreground font-medium tracking-wide">
+            {state === 'IDLE' ? 'Ready' : state === 'THINKING' ? 'Processing…' : state === 'CONFIRMING' ? 'Confirmed' : state === 'WARNING' ? 'Attention' : state}
+          </span>
+          <WaveformVisualizer state={state} />
+        </div>
       </div>
     </button>
+  );
+}
+
+function DesktopSkinFallback({ state }: { state: AvatarSkinState }) {
+  const isBusy = state === 'THINKING';
+  const isActive = state !== 'IDLE';
+  return (
+    <div className="relative w-12 h-12">
+      <motion.div
+        className="absolute inset-0 rounded-full blur-xl"
+        style={{ background: 'linear-gradient(135deg, hsl(var(--primary) / 0.35), hsl(var(--accent) / 0.25))' }}
+        animate={isBusy ? { scale: [1, 1.3, 1], opacity: [0.4, 0.7, 0.4] } : { scale: [1, 1.08, 1], opacity: [0.2, 0.35, 0.2] }}
+        transition={{ duration: isBusy ? 1.2 : 3.5, repeat: Infinity, ease: 'easeInOut' }}
+      />
+      <div className="absolute inset-0 rounded-full opacity-85" style={{ background: 'linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)))' }} />
+      <div className="absolute inset-1 rounded-full bg-background/80 backdrop-blur-md" />
+      <motion.div className="absolute inset-0 rounded-full border border-primary/20" animate={{ scale: [1, 1.06, 1] }} transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }} />
+      {isActive && (
+        <motion.div className="absolute -inset-1 rounded-full border-2 border-primary/40" animate={{ scale: [1, 1.15, 1], opacity: [0.5, 0, 0.5] }} transition={{ duration: 1.8, repeat: Infinity }} />
+      )}
+    </div>
   );
 }
 

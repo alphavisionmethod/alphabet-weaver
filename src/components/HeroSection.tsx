@@ -18,7 +18,7 @@ const HeroSection = () => {
 
     setIsSubmitting(true);
     try {
-      const { error } = await supabase.from("user_leads").insert({
+      const { error } = await (supabase.from as any)("user_leads").insert({
         email,
         source: "landing_page_hero",
         lead_type: "waitlist" as const,

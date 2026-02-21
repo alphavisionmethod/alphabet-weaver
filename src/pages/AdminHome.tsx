@@ -70,11 +70,11 @@ export default function AdminHome() {
 
   const fetchStats = async () => {
     const [leadsRes, donorsRes, investorsRes, workflowsRes, emailsRes] = await Promise.all([
-      supabase.from('user_leads').select('id', { count: 'exact', head: true }),
-      supabase.from('donor_profiles').select('amount_total'),
-      supabase.from('user_leads').select('id', { count: 'exact', head: true }).eq('lead_type', 'investor'),
-      supabase.from('workflow_templates').select('id', { count: 'exact', head: true }).eq('status', 'LIVE'),
-      supabase.from('email_messages').select('id', { count: 'exact', head: true }).eq('status', 'queued'),
+      (supabase.from as any)('user_leads').select('id', { count: 'exact', head: true }),
+      (supabase.from as any)('donor_profiles').select('amount_total'),
+      (supabase.from as any)('user_leads').select('id', { count: 'exact', head: true }).eq('lead_type', 'investor'),
+      (supabase.from as any)('workflow_templates').select('id', { count: 'exact', head: true }).eq('status', 'LIVE'),
+      (supabase.from as any)('email_messages').select('id', { count: 'exact', head: true }).eq('status', 'queued'),
     ]);
 
     const totalRaised = (donorsRes.data || []).reduce((sum, d) => sum + (d.amount_total || 0), 0);
@@ -90,8 +90,7 @@ export default function AdminHome() {
   };
 
   const fetchEvents = async () => {
-    const { data } = await supabase
-      .from('events')
+    const { data } = await (supabase.from as any)('events')
       .select('id, event_type, created_at, payload, lead_id')
       .order('created_at', { ascending: false })
       .limit(30);

@@ -2,12 +2,13 @@ import { AvatarRig } from '../avatar/AvatarRig';
 import { WorkflowPanel } from '../workflows/WorkflowPanel';
 import { useDemo } from '../../store';
 import { ReceiptCard } from '../ui/ReceiptCard';
+import { MetricsPanel } from '../ui/MetricsPanel';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { FileText, Settings } from 'lucide-react';
+import { FileText } from 'lucide-react';
 import { useState } from 'react';
 
 export function DesktopView() {
-  const { receipts, settings } = useDemo();
+  const { receipts } = useDemo();
   const [showLog, setShowLog] = useState(false);
 
   return (
@@ -41,6 +42,9 @@ export function DesktopView() {
           </ScrollArea>
         )}
       </div>
+
+      {/* Metrics panel */}
+      <MetricsPanel />
     </div>
   );
 }

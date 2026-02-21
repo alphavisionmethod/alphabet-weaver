@@ -40,13 +40,11 @@ function useLiveStats() {
   useEffect(() => {
     async function load() {
       // pull real event counts
-      const { count: totalEvents } = await supabase
-        .from("events")
+      const { count: totalEvents } = await (supabase.from as any)("events")
         .select("id", { count: "exact", head: true });
 
       // count refusal-type events (attacks blocked = investor demo phases that triggered)
-      const { count: refusals } = await supabase
-        .from("events")
+      const { count: refusals } = await (supabase.from as any)("events")
         .select("id", { count: "exact", head: true })
         .in("event_type", ["BOUNCE", "COMPLAINT", "EMAIL_FAILED"]);
 

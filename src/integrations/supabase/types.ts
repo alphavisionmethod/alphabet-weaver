@@ -14,7 +14,90 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      donation_tiers: {
+        Row: {
+          amount: number
+          color: string
+          description: string
+          display_order: number
+          icon: string
+          id: string
+          image_url: string | null
+          is_active: boolean
+          is_open: boolean
+          name: string
+          perks: Json
+          popular: boolean
+          stripe_price_id: string | null
+          tier_id: string
+        }
+        Insert: {
+          amount?: number
+          color?: string
+          description?: string
+          display_order?: number
+          icon?: string
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          is_open?: boolean
+          name: string
+          perks?: Json
+          popular?: boolean
+          stripe_price_id?: string | null
+          tier_id: string
+        }
+        Update: {
+          amount?: number
+          color?: string
+          description?: string
+          display_order?: number
+          icon?: string
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          is_open?: boolean
+          name?: string
+          perks?: Json
+          popular?: boolean
+          stripe_price_id?: string | null
+          tier_id?: string
+        }
+        Relationships: []
+      }
+      donations: {
+        Row: {
+          amount: number
+          created_at: string
+          email: string
+          id: string
+          message: string | null
+          name: string | null
+          stripe_session_id: string | null
+          tier: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          email: string
+          id?: string
+          message?: string | null
+          name?: string | null
+          stripe_session_id?: string | null
+          tier?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          email?: string
+          id?: string
+          message?: string | null
+          name?: string | null
+          stripe_session_id?: string | null
+          tier?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
