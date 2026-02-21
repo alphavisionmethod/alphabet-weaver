@@ -26,8 +26,7 @@ const AdminBrand = () => {
 
   const fetchTheme = async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from("brand_themes")
+    const { data } = await (supabase.from as any)("brand_themes")
       .select("*")
       .eq("is_active", true)
       .maybeSingle();
@@ -35,7 +34,7 @@ const AdminBrand = () => {
     if (data) {
       setTheme(data as unknown as BrandTheme);
     } else {
-      const { data: created } = await supabase.from("brand_themes").insert({
+      const { data: created } = await (supabase.from as any)("brand_themes").insert({
         name: "Default",
         primary_color: "#7C3AED",
         secondary_color: "#1E293B",
@@ -52,8 +51,7 @@ const AdminBrand = () => {
   const saveTheme = async () => {
     if (!theme) return;
     setSaving(true);
-    const { error } = await supabase
-      .from("brand_themes")
+    const { error } = await (supabase.from as any)("brand_themes")
       .update({
         name: theme.name,
         primary_color: theme.primary_color,

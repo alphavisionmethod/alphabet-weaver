@@ -70,8 +70,8 @@ const AdminWorkflowDetail = () => {
   const fetchData = async () => {
     setLoading(true);
     const [tmplRes, stepsRes] = await Promise.all([
-      supabase.from("workflow_templates").select("*").eq("id", id!).single(),
-      supabase.from("workflow_steps").select("*").eq("template_id", id!).order("step_order"),
+      (supabase.from as any)("workflow_templates").select("*").eq("id", id!).single(),
+      (supabase.from as any)("workflow_steps").select("*").eq("template_id", id!).order("step_order"),
     ]);
 
     if (tmplRes.error) {
@@ -114,7 +114,7 @@ const AdminWorkflowDetail = () => {
     setSaving(true);
 
     // Delete existing steps and re-insert
-    await supabase.from("workflow_steps").delete().eq("template_id", template.id);
+    await (supabase.from as any)("workflow_steps").delete().eq("template_id", template.id);
 
     const stepsToInsert = steps.map(s => ({
       template_id: template.id,
@@ -127,11 +127,11 @@ const AdminWorkflowDetail = () => {
       conditions: s.conditions,
     }));
 
-    const { error } = await supabase.from("workflow_steps").insert(stepsToInsert);
+    const { error } = await (supabase.from as any)("workflow_steps").insert(stepsToInsert);
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
-      await supabase.from("events").insert({
+      await (supabase.from as any)("events").insert({
         event_type: "TEMPLATE_UPDATED" as any,
         payload: { workflow_key: template.key, steps_count: steps.length },
       });

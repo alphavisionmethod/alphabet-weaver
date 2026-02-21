@@ -34,8 +34,7 @@ export default function AdminTeam() {
 
   const fetchRoles = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('user_roles')
+    const { data, error } = await (supabase.from as any)('user_roles')
       .select('*')
       .order('created_at', { ascending: true });
 
@@ -64,8 +63,7 @@ export default function AdminTeam() {
       return;
     }
 
-    const { error } = await supabase
-      .from('user_roles')
+    const { error } = await (supabase.from as any)('user_roles')
       .delete()
       .eq('id', id);
 
@@ -77,9 +75,8 @@ export default function AdminTeam() {
   };
 
   const changeRole = async (id: string, newRole: string) => {
-    const { error } = await supabase
-      .from('user_roles')
-      .update({ role: newRole as any })
+    const { error } = await (supabase.from as any)('user_roles')
+      .update({ role: newRole })
       .eq('id', id);
 
     if (error) toast.error(error.message);

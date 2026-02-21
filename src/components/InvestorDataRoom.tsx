@@ -17,7 +17,7 @@ const InvestorDataRoom = () => {
 
     setIsSubmitting(true);
     try {
-      const { error } = await supabase.from("user_leads").insert({
+      const { error } = await (supabase.from as any)("user_leads").insert({
         email,
         source: "investor_data_room",
         lead_type: "investor" as const,

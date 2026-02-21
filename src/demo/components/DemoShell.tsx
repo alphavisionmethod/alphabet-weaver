@@ -8,6 +8,7 @@ import { GlassesView } from './views/GlassesView';
 import { HologramView } from './views/HologramView';
 import { SessionProgress } from './ui/SessionProgress';
 import { ActivityTicker } from './ui/ActivityTicker';
+import { TimelineScrubber } from './ui/TimelineScrubber';
 import { Shield, RotateCcw, Home, Play, Keyboard } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
@@ -130,6 +131,9 @@ function DemoInner() {
               </motion.div>
             </AnimatePresence>
           </div>
+
+          {/* Timeline scrubber */}
+          <TimelineScrubber />
 
           {/* Activity ticker */}
           <ActivityTicker />
