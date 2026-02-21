@@ -1,9 +1,9 @@
 import { useState, useCallback } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useDemo } from '../../store';
 import { generateDriftScenarios, generateExperiments } from '../../systemIntelligence';
 import type { DriftScenario, Experiment } from '../../systemIntelligence';
-import { Flame, Beaker, AlertOctagon, Play, Pause, Lock } from 'lucide-react';
+import { Flame, Beaker, AlertOctagon, Play, Lock, Check, TrendingUp, TrendingDown, Zap } from 'lucide-react';
 
 function ScenarioCard({ scenario, onRun }: { scenario: DriftScenario; onRun: () => void }) {
   const [running, setRunning] = useState(false);
@@ -79,7 +79,7 @@ export function AdversarialDriftPanel() {
       </div>
 
       <div className="space-y-2 max-h-[300px] overflow-y-auto">
-        {scenarios.map((s, i) => (
+        {scenarios.map((s) => (
           <ScenarioCard key={s.id} scenario={s} onRun={() => setTestedCount(c => c + 1)} />
         ))}
       </div>
@@ -99,27 +99,71 @@ export function AdversarialDriftPanel() {
   );
 }
 
-function ExperimentCard({ experiment }: { experiment: Experiment }) {
-  const statusConfig = {
-    proposed: { icon: Play, color: 'text-muted-foreground', bg: 'bg-muted/10' },
-    running: { icon: Play, color: 'text-primary', bg: 'bg-primary/5' },
-    completed: { icon: Play, color: 'text-emerald-400', bg: 'bg-emerald-500/5' },
-    frozen: { icon: Lock, color: 'text-red-400', bg: 'bg-red-500/5' },
+// --- Interactive Experiment Results ---
+interface ExperimentResult {
+  observed_lift: number;
+  significance: number;
+  samples: number;
+  verdict: 'significant' | 'inconclusive' | 'harmful';
+}
+
+function simulateResult(exp: Experiment, seed: number): ExperimentResult {
+  // Deterministic simulation
+  const x = Math.sin(seed * 9301 + exp.id.charCodeAt(4) * 49297) * 49297;
+  const r = x - Math.floor(x);
+
+  const noise = (r - 0.5) * 0.15;
+  const observed_lift = exp.expected_lift + noise;
+  const significance = 0.6 + r * 0.39;
+  const samples = Math.floor(200 + r * 800);
+  const verdict: ExperimentResult['verdict'] =
+    observed_lift < -0.02 ? 'harmful' :
+    significance > 0.85 ? 'significant' : 'inconclusive';
+
+  return { observed_lift, significance, samples, verdict };
+}
+
+function InteractiveExperimentCard({ experiment, seed }: { experiment: Experiment; seed: number }) {
+  const [status, setStatus] = useState(experiment.status);
+  const [result, setResult] = useState<ExperimentResult | null>(null);
+  const [circuitTripped, setCircuitTripped] = useState(experiment.circuit_breaker);
+
+  const handleRun = useCallback(() => {
+    if (status === 'frozen') return;
+    setStatus('running');
+    setTimeout(() => {
+      const res = simulateResult(experiment, seed);
+      setResult(res);
+      if (res.verdict === 'harmful') {
+        setCircuitTripped(true);
+        setStatus('frozen');
+      } else {
+        setStatus('completed');
+      }
+    }, 1500);
+  }, [experiment, seed, status]);
+
+  const statusColors = {
+    proposed: 'text-muted-foreground',
+    running: 'text-primary',
+    completed: 'text-emerald-400',
+    frozen: 'text-red-400',
   };
-  const cfg = statusConfig[experiment.status];
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 5 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`rounded-lg border border-border/30 ${cfg.bg} p-2 space-y-1.5`}
+      className={`rounded-lg border border-border/30 p-2 space-y-1.5 ${
+        circuitTripped ? 'bg-red-500/5' : status === 'completed' ? 'bg-emerald-500/5' : 'bg-card/40'
+      }`}
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1.5">
-          {experiment.circuit_breaker && <AlertOctagon className="h-3 w-3 text-red-400" />}
+          {circuitTripped && <AlertOctagon className="h-3 w-3 text-red-400" />}
           <span className="text-[10px] font-medium text-foreground">{experiment.variable}</span>
         </div>
-        <span className={`text-[8px] font-bold ${cfg.color}`}>{experiment.status.toUpperCase()}</span>
+        <span className={`text-[8px] font-bold ${statusColors[status]}`}>{status.toUpperCase()}</span>
       </div>
 
       <div className="text-[9px] font-mono text-primary/70">{experiment.intervention}</div>
@@ -143,9 +187,94 @@ function ExperimentCard({ experiment }: { experiment: Experiment }) {
         </div>
       </div>
 
-      {experiment.circuit_breaker && (
-        <div className="rounded bg-red-500/10 border border-red-500/20 px-1.5 py-0.5 text-[8px] text-red-400 font-semibold">
-          🔒 Circuit breaker tripped — intervention frozen
+      {/* Run button */}
+      {status === 'proposed' && (
+        <button
+          onClick={handleRun}
+          className="w-full py-1.5 rounded-lg bg-primary/5 border border-primary/15 text-[9px] font-semibold text-primary hover:bg-primary/10 transition-colors flex items-center justify-center gap-1"
+        >
+          <Play className="h-3 w-3" /> Run Experiment
+        </button>
+      )}
+
+      {/* Running animation */}
+      {status === 'running' && (
+        <div className="flex items-center justify-center gap-2 py-1">
+          <div className="h-3 w-3 border border-primary/40 border-t-primary rounded-full animate-spin" />
+          <span className="text-[9px] text-primary">Collecting samples…</span>
+        </div>
+      )}
+
+      {/* Results */}
+      <AnimatePresence>
+        {result && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            transition={{ duration: 0.3 }}
+            className="space-y-1.5"
+          >
+            <div className="rounded-lg border border-border/20 bg-muted/5 p-2 space-y-1">
+              <p className="text-[8px] font-semibold text-muted-foreground uppercase tracking-wider">Experiment Results</p>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-[8px]">
+                <div className="flex items-center gap-1">
+                  {result.observed_lift >= 0 ? <TrendingUp className="h-2.5 w-2.5 text-emerald-400" /> : <TrendingDown className="h-2.5 w-2.5 text-red-400" />}
+                  <span className="text-muted-foreground">Observed Lift:</span>
+                  <span className={`font-mono font-bold ${result.observed_lift >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                    {result.observed_lift >= 0 ? '+' : ''}{(result.observed_lift * 100).toFixed(1)}%
+                  </span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Zap className="h-2.5 w-2.5 text-primary" />
+                  <span className="text-muted-foreground">Significance:</span>
+                  <span className="font-mono text-foreground">{(result.significance * 100).toFixed(0)}%</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Samples:</span>
+                  <span className="font-mono text-foreground ml-1">{result.samples}</span>
+                </div>
+                <div>
+                  <span className={`font-bold ${
+                    result.verdict === 'significant' ? 'text-emerald-400' :
+                    result.verdict === 'harmful' ? 'text-red-400' : 'text-amber-400'
+                  }`}>
+                    {result.verdict === 'significant' ? '✓ Significant' :
+                     result.verdict === 'harmful' ? '✕ Harmful' : '~ Inconclusive'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Lift comparison bar */}
+            <div className="flex items-center gap-1 text-[8px]">
+              <span className="text-muted-foreground w-16 flex-shrink-0">Expected</span>
+              <div className="flex-1 h-1.5 rounded-full bg-muted/20 overflow-hidden relative">
+                <motion.div
+                  className="h-full rounded-full bg-primary/40"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${Math.max(0, experiment.expected_lift * 100 * 5)}%` }}
+                  transition={{ duration: 0.5 }}
+                />
+              </div>
+            </div>
+            <div className="flex items-center gap-1 text-[8px]">
+              <span className="text-muted-foreground w-16 flex-shrink-0">Observed</span>
+              <div className="flex-1 h-1.5 rounded-full bg-muted/20 overflow-hidden relative">
+                <motion.div
+                  className={`h-full rounded-full ${result.observed_lift >= 0 ? 'bg-emerald-400/60' : 'bg-red-400/60'}`}
+                  initial={{ width: 0 }}
+                  animate={{ width: `${Math.max(0, Math.abs(result.observed_lift) * 100 * 5)}%` }}
+                  transition={{ duration: 0.5, delay: 0.2 }}
+                />
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {circuitTripped && (
+        <div className="rounded bg-red-500/10 border border-red-500/20 px-1.5 py-0.5 text-[8px] text-red-400 font-semibold flex items-center gap-1">
+          <Lock className="h-2.5 w-2.5" /> Circuit breaker tripped — intervention frozen
         </div>
       )}
     </motion.div>
@@ -156,9 +285,6 @@ export function ExperimentPanel() {
   const { settings } = useDemo();
   const experiments = generateExperiments(settings.seed);
 
-  const active = experiments.filter(e => e.status === 'running').length;
-  const frozen = experiments.filter(e => e.circuit_breaker).length;
-
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
@@ -166,15 +292,12 @@ export function ExperimentPanel() {
           <Beaker className="h-3.5 w-3.5 text-primary" />
           <span className="text-[11px] font-semibold text-foreground">Safe Micro-Experiments</span>
         </div>
-        <div className="flex gap-2 text-[8px]">
-          <span className="text-primary">{active} active</span>
-          {frozen > 0 && <span className="text-red-400">{frozen} frozen</span>}
-        </div>
+        <div className="text-[8px] text-muted-foreground">Click "Run" to test</div>
       </div>
 
-      <div className="space-y-2 max-h-[300px] overflow-y-auto">
+      <div className="space-y-2 max-h-[400px] overflow-y-auto">
         {experiments.map(e => (
-          <ExperimentCard key={e.id} experiment={e} />
+          <InteractiveExperimentCard key={e.id} experiment={e} seed={settings.seed} />
         ))}
       </div>
     </div>
