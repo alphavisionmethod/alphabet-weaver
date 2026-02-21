@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useCallback, useMemo, useEffect, type ReactNode } from 'react';
-import type { ViewMode, WorkflowId, WorkflowState, WorkflowStep, Receipt, DemoSettings, AvatarSkinState, PolicyGate, ToolCall } from './types';
+import type { ViewMode, WorkflowId, WorkflowState, WorkflowStep, Receipt, DemoSettings, AvatarSkinState, PolicyGate, ToolCall, IntelTabId } from './types';
 import { FROZEN_TIMESTAMP, generateReceiptId, generateCorrelationId } from './data';
 
 export interface ActivityLogEntry {
@@ -22,6 +22,7 @@ interface DemoState {
   narration: string;
   attackVisible: boolean;
   showCompletion: boolean;
+  intelTab: IntelTabId;
 
   chooseMode: (mode: ViewMode) => void;
   setActiveWorkflow: (id: WorkflowId | null) => void;
@@ -30,6 +31,7 @@ interface DemoState {
   setAvatarState: (s: AvatarSkinState) => void;
   updateSettings: (s: Partial<DemoSettings>) => void;
   setNarration: (text: string) => void;
+  setIntelTab: (tab: IntelTabId) => void;
   dismissAttack: () => void;
   dismissCompletion: () => void;
   startAutoplay: () => void;
@@ -78,6 +80,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
   const [narration, setNarration] = useState('');
   const [attackVisible, setAttackVisible] = useState(false);
   const [showCompletion, setShowCompletion] = useState(false);
+  const [intelTab, setIntelTab] = useState<IntelTabId>('meta');
   const [settings, setSettings] = useState<DemoSettings>({
     seed: 42,
     frozenTime: true,
@@ -212,15 +215,16 @@ export function DemoProvider({ children }: { children: ReactNode }) {
   const value = useMemo<DemoState>(() => ({
     viewMode, resolvedMode, hasChosenMode, activeWorkflow, workflows, receipts,
     avatarState, settings, autoplayActive, activityLog, narration, attackVisible, showCompletion,
+    intelTab,
     chooseMode, setActiveWorkflow, advanceWorkflow, approveWire,
-    setAvatarState, updateSettings, resetDemo, setNarration, 
+    setAvatarState, updateSettings, resetDemo, setNarration, setIntelTab,
     dismissAttack: () => setAttackVisible(false),
     dismissCompletion: () => setShowCompletion(false),
     startAutoplay: () => setAutoplayActive(true),
     stopAutoplay: () => setAutoplayActive(false),
   }), [viewMode, resolvedMode, hasChosenMode, activeWorkflow, workflows, receipts,
     avatarState, settings, autoplayActive, activityLog, narration, attackVisible, showCompletion,
-    chooseMode, advanceWorkflow, approveWire, updateSettings, resetDemo]);
+    intelTab, chooseMode, advanceWorkflow, approveWire, updateSettings, resetDemo]);
 
   return <DemoContext.Provider value={value}>{children}</DemoContext.Provider>;
 }
