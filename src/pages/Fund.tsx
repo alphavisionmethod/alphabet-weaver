@@ -32,10 +32,58 @@ interface DonationTier {
   display_order: number;
 }
 
+const FALLBACK_TIERS: DonationTier[] = [
+  {
+    id: "fallback-1",
+    tier_id: "supporter",
+    name: "Supporter",
+    amount: 25,
+    description: "Back the mission and join the community",
+    icon: "Heart",
+    color: "#8B5CF6",
+    perks: ["Name on supporters wall", "Early access updates", "Community badge"],
+    is_open: false,
+    popular: false,
+    image_url: null,
+    stripe_price_id: null,
+    display_order: 1,
+  },
+  {
+    id: "fallback-2",
+    tier_id: "builder",
+    name: "Builder",
+    amount: 100,
+    description: "Help shape the product roadmap",
+    icon: "Rocket",
+    color: "#D97706",
+    perks: ["Everything in Supporter", "Priority feature requests", "Monthly founder updates", "Beta access"],
+    is_open: false,
+    popular: true,
+    image_url: null,
+    stripe_price_id: null,
+    display_order: 2,
+  },
+  {
+    id: "fallback-3",
+    tier_id: "visionary",
+    name: "Visionary",
+    amount: 500,
+    description: "Become a strategic partner in our journey",
+    icon: "Crown",
+    color: "#059669",
+    perks: ["Everything in Builder", "1-on-1 strategy call", "Advisory board nomination", "Custom integration support"],
+    is_open: false,
+    popular: false,
+    image_url: null,
+    stripe_price_id: null,
+    display_order: 3,
+  },
+];
+
 const Fund = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [tiers, setTiers] = useState<DonationTier[]>([]);
+  const [tiers, setTiers] = useState<DonationTier[]>(FALLBACK_TIERS);
   const [loadingTiers, setLoadingTiers] = useState(true);
   const [selectedTier, setSelectedTier] = useState<string | null>(null);
   const [formData, setFormData] = useState({ name: "", email: "", amount: "", message: "" });
@@ -45,16 +93,20 @@ const Fund = () => {
 
   const activeTier = tiers.find((t) => t.tier_id === selectedTier);
 
-  // Fetch tiers from database
+  // Fetch tiers from database, fall back to hardcoded
   useEffect(() => {
     const fetchTiers = async () => {
-      const { data, error } = await supabase
-        .from("donation_tiers" as any)
-        .select("*")
-        .eq("is_active", true)
-        .order("display_order", { ascending: true });
-      if (!error && data) {
-        setTiers(data as unknown as DonationTier[]);
+      try {
+        const { data, error } = await supabase
+          .from("donation_tiers" as any)
+          .select("*")
+          .eq("is_active", true)
+          .order("display_order", { ascending: true });
+        if (!error && data && data.length > 0) {
+          setTiers(data as unknown as DonationTier[]);
+        }
+      } catch {
+        // Use fallback tiers
       }
       setLoadingTiers(false);
     };
@@ -109,7 +161,7 @@ const Fund = () => {
 
       if (error) throw error;
       if (data?.url) {
-        window.open(data.url, "_blank");
+        window.location.href = data.url;
       }
     } catch {
       setErrors({ form: "Something went wrong. Please try again." });
