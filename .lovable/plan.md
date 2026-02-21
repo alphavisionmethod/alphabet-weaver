@@ -1,169 +1,136 @@
 
 
-# Fund Page Database + Demo Enhancement Plan
+# "Holy Shit" Demo Enhancement Plan
 
-## Part 1: Create Database Tables for Fund Page
+## What You Already Have
 
-Create a migration with two tables so the Fund page uses live Supabase data instead of hardcoded fallback tiers.
+The demo currently features 3 workflows (Revenue Leak, Wire Transfer, Board Briefing), a 3D avatar orb, 4 view modes (Desktop, Mobile, Glasses, Hologram), sound effects, confetti, a timeline scrubber, a metrics panel, a command panel chat, and an autoplay mode. This is already a strong foundation.
 
-### Tables to Create
+## What's Missing to Make It "100% Wow"
 
-**donation_tiers**
-- id (UUID, primary key)
-- tier_id (TEXT, unique) -- e.g. "supporter", "builder", "visionary"
-- name (TEXT)
-- amount (NUMERIC)
-- description (TEXT)
-- icon (TEXT) -- lucide icon name
-- color (TEXT) -- hex color
-- perks (JSONB) -- array of perk strings
-- is_open (BOOLEAN) -- allow custom amounts
-- popular (BOOLEAN)
-- image_url (TEXT, nullable)
-- stripe_price_id (TEXT, nullable)
-- display_order (INTEGER)
-- is_active (BOOLEAN, default true)
-
-**donations**
-- id (UUID, primary key)
-- name (TEXT, nullable)
-- email (TEXT)
-- amount (NUMERIC)
-- tier (TEXT, nullable)
-- message (TEXT, nullable)
-- created_at (TIMESTAMPTZ)
-- stripe_session_id (TEXT, nullable)
-
-### RLS Policies
-- donation_tiers: public SELECT where is_active = true
-- donations: public INSERT (anyone can donate)
-- donations: SELECT restricted (admin only via auth)
-
-### Seed Data
-Insert the 3 tiers: Supporter ($25), Builder ($100, popular), Visionary ($500)
-
-### Code Updates
-- Update `src/integrations/supabase/types.ts` to add proper types for both tables (removing `as any` casts)
-- Clean up Fund.tsx to use typed queries instead of `as any`
+The demo lacks **visceral feedback**, **narrative drama**, and **"impossible" moments** that make people say "holy shit." Here are 8 enhancements ranked by impact:
 
 ---
 
-## Part 2: Demo Enhancements
+### 1. Typewriter Narration Bar (Cinematic Captions)
 
-### A. 3D Animated Avatar Orb (React Three Fiber)
+A persistent narration bar at the top of the viewport that types out what SITA is doing in real-time, like subtitles in a movie. During autoplay, captions like "Scanning 847 vendor records..." appear letter by letter with a blinking cursor. During manual use, it narrates each step contextually.
 
-Replace the current 2D CSS/SVG avatar orb in the demo with a real 3D orb using React Three Fiber. This creates a dramatic, interactive sphere that responds to the avatar state (IDLE, THINKING, CONFIRMING, WARNING, etc.).
-
-**Implementation:**
-- Install `@react-three/fiber@^8.18`, `three@^0.170`, and `@react-three/drei@^9.122.0`
-- Create `src/demo/components/avatar/AvatarOrb3D.tsx` -- a Canvas with a glass-like sphere that:
-  - Pulses and glows based on avatar state
-  - Has animated shader distortion when THINKING
-  - Emits particles when CONFIRMING
-  - Turns red-tinged when WARNING
-  - Responds to mouse proximity (subtle attraction)
-- Integrate into `AvatarRig.tsx` as the new DesktopSkin and GlassesSkin (replacing the 2D orb), falling back to 2D for mobile/hologram views where 3D would be too heavy
-
-### B. Voice Waveform Visualizer
-
-Add a real-time audio waveform animation next to the avatar when in LISTENING or THINKING state:
-- Create `src/demo/components/ui/WaveformVisualizer.tsx`
-- Animated bars that react to simulated audio input
-- Fades in/out based on avatar state
-
-### C. Interactive Timeline Scrubber
-
-Add a timeline at the bottom of the demo that shows all workflow events as a visual timeline:
-- Create `src/demo/components/ui/TimelineScrubber.tsx`
-- Shows policy gates, tool calls, and receipts as dots on a timeline
-- Clicking a dot highlights that step
-- Auto-scrolls as new events happen
-
-### D. Live Metrics Dashboard Panel
-
-Add a collapsible metrics panel showing real-time demo stats:
-- Create `src/demo/components/ui/MetricsPanel.tsx`
-- Shows: Total cost (cents), Policy gates passed/failed, Tool calls made, Receipts minted
-- Animated counters that tick up as workflows progress
-- Small sparkline charts
+- New file: `src/demo/components/ui/NarrationBar.tsx`
+- Modify: `DemoShell.tsx` to render it below the top bar
+- Modify: `store.tsx` to add a `narration` string and `setNarration` method
+- Auto-set narration text on each workflow step transition
 
 ---
 
-## Technical Details
+### 2. Live Cost Counter with Dollar-Spinning Animation
 
-### Migration SQL
+Replace the static "8c" cost display with a dramatic spinning odometer that counts up in real-time as workflows progress. Each cent ticks audibly. Shows "Total AI spend: $0.33" prominently in the top bar so viewers immediately understand the cost transparency angle.
 
-```sql
-CREATE TABLE IF NOT EXISTS public.donation_tiers (
-  id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
-  tier_id TEXT NOT NULL UNIQUE,
-  name TEXT NOT NULL,
-  amount NUMERIC NOT NULL DEFAULT 0,
-  description TEXT NOT NULL DEFAULT '',
-  icon TEXT NOT NULL DEFAULT 'Heart',
-  color TEXT NOT NULL DEFAULT '#8B5CF6',
-  perks JSONB NOT NULL DEFAULT '[]',
-  is_open BOOLEAN NOT NULL DEFAULT false,
-  popular BOOLEAN NOT NULL DEFAULT false,
-  image_url TEXT,
-  stripe_price_id TEXT,
-  display_order INTEGER NOT NULL DEFAULT 0,
-  is_active BOOLEAN NOT NULL DEFAULT true
-);
+- New file: `src/demo/components/ui/CostOdometer.tsx`
+- Animated digit columns that roll like a slot machine
+- Integrate into the top bar of `DemoShell.tsx`
 
-ALTER TABLE public.donation_tiers ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Anyone can view active tiers"
-  ON public.donation_tiers FOR SELECT USING (is_active = true);
+---
 
-CREATE TABLE IF NOT EXISTS public.donations (
-  id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
-  name TEXT,
-  email TEXT NOT NULL,
-  amount NUMERIC NOT NULL,
-  tier TEXT,
-  message TEXT,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  stripe_session_id TEXT
-);
+### 3. "Prove It" Receipt Drawer with Hash Verification
 
-ALTER TABLE public.donations ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Public can insert donations"
-  ON public.donations FOR INSERT WITH CHECK (true);
+When a receipt is minted, add a dramatic "Prove It" button that opens a drawer showing the full cryptographic receipt with a SHA-256 hash, JSON payload, and a "Verify" button that animates a checkmark. This demonstrates the transparency/audit trail visually.
 
-INSERT INTO public.donation_tiers
-  (tier_id, name, amount, description, icon, color, perks, popular, display_order)
-VALUES
-  ('supporter', 'Supporter', 25, 'Back the mission and join the community',
-   'Heart', '#8B5CF6',
-   '["Name on supporters wall","Early access updates","Community badge"]',
-   false, 1),
-  ('builder', 'Builder', 100, 'Help shape the product roadmap',
-   'Rocket', '#D97706',
-   '["Everything in Supporter","Priority feature requests","Monthly founder updates","Beta access"]',
-   true, 2),
-  ('visionary', 'Visionary', 500, 'Become a strategic partner in our journey',
-   'Crown', '#059669',
-   '["Everything in Builder","1-on-1 strategy call","Advisory board nomination","Custom integration support"]',
-   false, 3);
-```
+- New file: `src/demo/components/ui/ProveItDrawer.tsx`
+- Modify `ReceiptCard.tsx` to add the "Prove It" button
+- Animate hash characters appearing one by one
 
-### Files to Create/Modify
+---
 
-| File | Action |
-|------|--------|
-| New migration | Create donation_tiers + donations tables |
-| `src/integrations/supabase/types.ts` | Add typed schemas for both tables |
-| `src/pages/Fund.tsx` | Remove `as any` casts, use proper types |
-| `src/demo/components/avatar/AvatarOrb3D.tsx` | New 3D orb component |
-| `src/demo/components/avatar/AvatarRig.tsx` | Integrate 3D orb for desktop/glasses skins |
-| `src/demo/components/ui/WaveformVisualizer.tsx` | New waveform animation |
-| `src/demo/components/ui/TimelineScrubber.tsx` | New event timeline |
-| `src/demo/components/ui/MetricsPanel.tsx` | New metrics dashboard |
-| `src/demo/components/DemoShell.tsx` | Add timeline + metrics to shell |
-| `src/demo/components/views/DesktopView.tsx` | Add metrics panel |
+### 4. Red Team Attack Popup
 
-### New Dependencies
-- `@react-three/fiber@^8.18`
-- `three@^0.170`
-- `@react-three/drei@^9.122.0`
+During the Wire Transfer workflow (approval step), a dramatic red-bordered popup appears: "SIMULATED ATTACK: Someone is trying to change the wire recipient to a different account." Shows SITA blocking it with a policy gate DENY verdict. Auto-dismisses after 4 seconds. Makes the security story visceral.
+
+- New file: `src/demo/components/ui/AttackAlert.tsx`
+- Trigger from `store.tsx` when wire-transfer reaches `approval` step
+- Glitch/shake animation on appearance, red scan-line effect
+
+---
+
+### 5. Advisor Voting Animation (Board Briefing)
+
+Instead of showing all 12 advisors as a static list, animate them voting one by one with a dramatic tally. Each advisor "card" flips in, their stance appears (approve/caution/reject), and a running vote count updates. Final verdict appears with a gavel sound effect.
+
+- Modify `WorkflowPanel.tsx` board-briefing findings step
+- New file: `src/demo/components/ui/AdvisorVoteAnimation.tsx`
+- Staggered entrance with 200ms delay per advisor
+- Running tally bar: green vs amber vs red segments
+
+---
+
+### 6. Ambient Sound System Upgrade
+
+Add ambient background hum (low drone) that subtly shifts pitch based on avatar state. Add a "digital typing" sound during THINKING state. Add a satisfying "ka-chunk" for receipt minting. Add a glass-tap for UI interactions.
+
+- Modify `useSoundEffects.ts` to add new sound types: `ambient`, `type`, `tap`, `gavel`
+- Add ambient drone using oscillator with LFO modulation
+- State-reactive pitch shifting
+
+---
+
+### 7. Workflow Completion Summary Card
+
+After all 3 workflows complete, show a dramatic full-screen summary card: "SITA handled 3 workflows, processed $52,188 in decisions, passed 8 policy gates, minted 3 receipts -- total AI cost: $0.33." With animated counters and a share button.
+
+- New file: `src/demo/components/ui/CompletionSummary.tsx`
+- Triggered when all 3 workflows reach `receipt` step
+- Full-screen overlay with staggered counter animations
+- "Run Again" and "Book a Demo" CTAs
+
+---
+
+### 8. Connector Mode Toggle (SIM / SHADOW / REAL)
+
+Make the connector mode badge in the top bar interactive. Clicking it cycles through SIM, SHADOW, REAL with a visual indicator. In SHADOW mode, receipts show "shadow" badge. In REAL mode, a warning appears "This would execute real actions." Demonstrates the graduated trust model.
+
+- Modify `DemoShell.tsx` top bar to make connector mode clickable
+- Add visual state changes per mode (border color, badge style)
+- Modify `store.tsx` settings to cycle through modes
+
+---
+
+## Implementation Priority
+
+| Priority | Feature | Impact | Effort |
+|----------|---------|--------|--------|
+| 1 | Typewriter Narration Bar | Very High | Small |
+| 2 | Live Cost Odometer | Very High | Small |
+| 3 | Prove It Receipt Drawer | High | Medium |
+| 4 | Red Team Attack Popup | Very High | Small |
+| 5 | Advisor Voting Animation | High | Medium |
+| 6 | Ambient Sound Upgrade | Medium | Small |
+| 7 | Completion Summary | High | Medium |
+| 8 | Connector Mode Toggle | Medium | Small |
+
+## Files to Create
+
+| File | Purpose |
+|------|---------|
+| `src/demo/components/ui/NarrationBar.tsx` | Typewriter captions |
+| `src/demo/components/ui/CostOdometer.tsx` | Spinning cost counter |
+| `src/demo/components/ui/ProveItDrawer.tsx` | Hash verification drawer |
+| `src/demo/components/ui/AttackAlert.tsx` | Red team attack popup |
+| `src/demo/components/ui/AdvisorVoteAnimation.tsx` | Staggered voting UI |
+| `src/demo/components/ui/CompletionSummary.tsx` | End-of-demo summary |
+
+## Files to Modify
+
+| File | Changes |
+|------|---------|
+| `src/demo/store.tsx` | Add narration state, attack trigger, completion detection |
+| `src/demo/components/DemoShell.tsx` | Add NarrationBar, CostOdometer, connector toggle, CompletionSummary |
+| `src/demo/components/workflows/WorkflowPanel.tsx` | Integrate AdvisorVoteAnimation, AttackAlert trigger |
+| `src/demo/components/ui/ReceiptCard.tsx` | Add "Prove It" button |
+| `src/demo/hooks/useSoundEffects.ts` | Add new sound types |
+| `src/demo/hooks/useAutoplay.ts` | Set narration text per step |
+
+## No New Dependencies Required
+
+All enhancements use framer-motion (already installed), Web Audio API (already used), and React -- no new packages needed.
 
