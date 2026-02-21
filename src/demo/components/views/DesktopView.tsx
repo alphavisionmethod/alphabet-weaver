@@ -3,13 +3,15 @@ import { WorkflowPanel } from '../workflows/WorkflowPanel';
 import { useDemo } from '../../store';
 import { ReceiptCard } from '../ui/ReceiptCard';
 import { MetricsPanel } from '../ui/MetricsPanel';
+import { SystemIntelligencePanel } from '../intelligence/SystemIntelligencePanel';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { FileText } from 'lucide-react';
+import { FileText, Brain } from 'lucide-react';
 import { useState } from 'react';
 
 export function DesktopView() {
   const { receipts } = useDemo();
   const [showLog, setShowLog] = useState(false);
+  const [showIntel, setShowIntel] = useState(true);
 
   return (
     <div className="h-full flex">
@@ -22,6 +24,22 @@ export function DesktopView() {
         <div className="max-w-xl">
           <WorkflowPanel />
         </div>
+      </div>
+
+      {/* System Intelligence Panel */}
+      <div className={`border-l border-border/30 bg-card/20 transition-all duration-300 overflow-hidden ${showIntel ? 'w-80' : 'w-10'}`}>
+        <button
+          onClick={() => setShowIntel(s => !s)}
+          className="w-10 h-10 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+          title="System Intelligence"
+        >
+          <Brain className="h-4 w-4" />
+        </button>
+        {showIntel && (
+          <div className="h-[calc(100%-40px)]">
+            <SystemIntelligencePanel />
+          </div>
+        )}
       </div>
 
       {/* Right panel - Receipts log */}
