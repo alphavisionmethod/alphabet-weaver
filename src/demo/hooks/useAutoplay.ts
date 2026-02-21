@@ -1,6 +1,28 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import { useDemo } from '../store';
 import type { WorkflowId, IntelTabId } from '../types';
+
+// Act boundaries in CINEMATIC_SEQUENCE (step indices, inclusive)
+const ACT_BOUNDARIES = [
+  { act: 1, label: 'Revenue Leak Detection', start: 0, end: 6 },
+  { act: 2, label: 'Wire Transfer Approval', start: 7, end: 14 },
+  { act: 3, label: 'Board Briefing', start: 15, end: 22 },
+  { act: 4, label: 'Finale', start: 23, end: 23 },
+];
+
+export interface AutoplayProgress {
+  act: number;
+  actLabel: string;
+  stepInAct: number;
+  stepsInAct: number;
+  overallProgress: number;
+  estimatedSecondsLeft: number;
+}
+
+// Shared ref for current step so progress hook can read it
+let _currentStep = 0;
+let _totalSteps = 0;
+let _totalDurationMs = 0;
 
 type AutoplayAction =
   | { type: 'workflow'; action: 'start' | 'advance' | 'approve' | 'back'; workflowId?: WorkflowId }
@@ -47,6 +69,43 @@ const CINEMATIC_SEQUENCE: AutoplayStep[] = [
   { actions: [{ type: 'narrate', text: 'All workflows complete. A self-auditing system that learns when it\'s wrong — and proves when it\'s right.' }], delay: 4000 },
 ];
 
+export function useAutoplayProgress(): AutoplayProgress | null {
+  const { autoplayActive } = useDemo();
+  const [progress, setProgress] = useState<AutoplayProgress | null>(null);
+
+  useEffect(() => {
+    if (!autoplayActive) { setProgress(null); return; }
+
+    const interval = setInterval(() => {
+      const step = _currentStep;
+      const actInfo = ACT_BOUNDARIES.find(a => step >= a.start && step <= a.end) || ACT_BOUNDARIES[0];
+      const stepInAct = step - actInfo.start + 1;
+      const stepsInAct = actInfo.end - actInfo.start + 1;
+      const overallProgress = _totalSteps > 0 ? step / _totalSteps : 0;
+
+      // Estimate remaining time
+      const elapsedSteps = step;
+      let remainingMs = 0;
+      for (let i = elapsedSteps; i < CINEMATIC_SEQUENCE.length; i++) {
+        remainingMs += CINEMATIC_SEQUENCE[i].delay;
+      }
+
+      setProgress({
+        act: actInfo.act,
+        actLabel: actInfo.label,
+        stepInAct,
+        stepsInAct,
+        overallProgress,
+        estimatedSecondsLeft: remainingMs / 1000,
+      });
+    }, 300);
+
+    return () => clearInterval(interval);
+  }, [autoplayActive]);
+
+  return progress;
+}
+
 export function useAutoplay() {
   const {
     autoplayActive, stopAutoplay, setActiveWorkflow,
@@ -61,9 +120,12 @@ export function useAutoplay() {
 
   const runStep = useCallback(() => {
     if (stepRef.current >= CINEMATIC_SEQUENCE.length) {
+      _currentStep = CINEMATIC_SEQUENCE.length;
       fnsRef.current.stopAutoplay();
       return;
     }
+
+    _currentStep = stepRef.current;
 
     const step = CINEMATIC_SEQUENCE[stepRef.current];
     const fns = fnsRef.current;
@@ -112,9 +174,11 @@ export function useAutoplay() {
   }, []); // No deps — uses refs
 
   useEffect(() => {
+    _totalSteps = CINEMATIC_SEQUENCE.length;
     if (autoplayActive) {
       resetDemo();
       stepRef.current = 0;
+      _currentStep = 0;
       // Small delay to let reset settle before starting
       timerRef.current = setTimeout(runStep, 1500);
     } else {

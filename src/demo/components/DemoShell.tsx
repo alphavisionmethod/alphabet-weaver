@@ -7,6 +7,7 @@ import { MobileView } from './views/MobileView';
 import { GlassesView } from './views/GlassesView';
 import { HologramView } from './views/HologramView';
 import { SessionProgress } from './ui/SessionProgress';
+import { AutoplayProgressBar } from './ui/AutoplayProgressBar';
 import { ActivityTicker } from './ui/ActivityTicker';
 import { TimelineScrubber } from './ui/TimelineScrubber';
 import { NarrationBar } from './ui/NarrationBar';
@@ -163,6 +164,9 @@ function DemoInner() {
               <ViewSwitcher />
             </div>
           </div>
+
+          {/* Autoplay progress bar */}
+          <AutoplayProgressBar />
 
           {/* Narration bar */}
           <NarrationBar text={narration} />
