@@ -12,10 +12,23 @@ const Slider = React.forwardRef<
     className={cn("relative flex w-full touch-none select-none items-center", className)}
     {...props}
   >
-    <SliderPrimitive.Track className="relative h-2 w-full grow overflow-hidden rounded-full bg-secondary">
-      <SliderPrimitive.Range className="absolute h-full bg-primary" />
+    <SliderPrimitive.Track className="relative h-4 md:h-3 w-full grow overflow-hidden rounded-full bg-secondary">
+      <SliderPrimitive.Range 
+        className="absolute h-full rounded-full"
+        style={{
+          background: "linear-gradient(90deg, hsl(var(--primary)), hsl(var(--accent)))",
+          boxShadow: "0 0 20px hsl(var(--accent) / 0.5)",
+        }}
+      />
     </SliderPrimitive.Track>
-    <SliderPrimitive.Thumb className="block h-5 w-5 rounded-full border-2 border-primary bg-background ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50" />
+    <SliderPrimitive.Thumb 
+      className="block h-6 w-6 md:h-6 md:w-6 rounded-full border-2 border-accent bg-background ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:scale-110 touch-none"
+      style={{
+        boxShadow: "0 0 15px hsl(var(--accent) / 0.5)",
+        minWidth: "clamp(1.5rem, 8vw, 1.5rem)",
+        minHeight: "clamp(1.5rem, 8vw, 1.5rem)",
+      }}
+    />
   </SliderPrimitive.Root>
 ));
 Slider.displayName = SliderPrimitive.Root.displayName;
