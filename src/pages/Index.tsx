@@ -20,6 +20,7 @@ import FloatingNav from "@/components/FloatingNav";
 import ScrollProgress from "@/components/ScrollProgress";
 import ComparisonSection from "@/components/ComparisonSection";
 import LogoBar from "@/components/LogoBar";
+import TeamSection from "@/components/TeamSection";
 
 /* ─── Glitch "Try to Break It" CTA ─── */
 function TryToBreakItCTA() {
@@ -91,6 +92,7 @@ const Index = () => {
       <TryToBreakItCTA />
       <ThreeDesksSection />
       <BoardOfAdvisorsSection />
+      <TeamSection />
       <AutonomyLadderSection />
       <MultiPlatformSection />
       <SovereignBackerSection />
