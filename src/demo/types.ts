@@ -70,6 +70,8 @@ export interface WireTransferData {
   reference: string;
 }
 
+export type IntelTabId = 'ledger' | 'meta' | 'regime' | 'decay' | 'drift' | 'experiments';
+
 export interface DemoSettings {
   seed: number;
   frozenTime: boolean;

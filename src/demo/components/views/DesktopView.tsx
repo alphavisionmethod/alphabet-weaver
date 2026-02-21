@@ -9,7 +9,7 @@ import { FileText, Brain } from 'lucide-react';
 import { useState } from 'react';
 
 export function DesktopView() {
-  const { receipts } = useDemo();
+  const { receipts, autoplayActive } = useDemo();
   const [showLog, setShowLog] = useState(false);
   const [showIntel, setShowIntel] = useState(true);
 
@@ -27,7 +27,7 @@ export function DesktopView() {
       </div>
 
       {/* System Intelligence Panel */}
-      <div className={`border-l border-border/30 bg-card/20 transition-all duration-300 overflow-hidden ${showIntel ? 'w-80' : 'w-10'}`}>
+      <div className={`border-l border-border/30 bg-card/20 transition-all duration-300 overflow-hidden ${(showIntel || autoplayActive) ? 'w-80' : 'w-10'}`}>
         <button
           onClick={() => setShowIntel(s => !s)}
           className="w-10 h-10 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
@@ -35,7 +35,7 @@ export function DesktopView() {
         >
           <Brain className="h-4 w-4" />
         </button>
-        {showIntel && (
+        {(showIntel || autoplayActive) && (
           <div className="h-[calc(100%-40px)]">
             <SystemIntelligencePanel />
           </div>
