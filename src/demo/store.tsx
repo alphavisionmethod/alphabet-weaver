@@ -19,6 +19,9 @@ interface DemoState {
   settings: DemoSettings;
   autoplayActive: boolean;
   activityLog: ActivityLogEntry[];
+  narration: string;
+  attackVisible: boolean;
+  showCompletion: boolean;
 
   chooseMode: (mode: ViewMode) => void;
   setActiveWorkflow: (id: WorkflowId | null) => void;
@@ -26,6 +29,9 @@ interface DemoState {
   approveWire: () => void;
   setAvatarState: (s: AvatarSkinState) => void;
   updateSettings: (s: Partial<DemoSettings>) => void;
+  setNarration: (text: string) => void;
+  dismissAttack: () => void;
+  dismissCompletion: () => void;
   startAutoplay: () => void;
   stopAutoplay: () => void;
   resetDemo: () => void;
@@ -69,6 +75,9 @@ export function DemoProvider({ children }: { children: ReactNode }) {
   const [avatarState, setAvatarState] = useState<AvatarSkinState>('IDLE');
   const [autoplayActive, setAutoplayActive] = useState(false);
   const [activityLog, setActivityLog] = useState<ActivityLogEntry[]>([]);
+  const [narration, setNarration] = useState('');
+  const [attackVisible, setAttackVisible] = useState(false);
+  const [showCompletion, setShowCompletion] = useState(false);
   const [settings, setSettings] = useState<DemoSettings>({
     seed: 42,
     frozenTime: true,
@@ -107,15 +116,18 @@ export function DemoProvider({ children }: { children: ReactNode }) {
         gates.push({ verdict: 'PASS', rule: `${id}.read_access`, timestamp: ts });
         tools.push({ id: `tc_${Date.now()}`, tool: `${id}.scan`, args: { scope: 'full' }, result: 'initiated', timestamp: ts });
         setAvatarState('THINKING');
+        setNarration(id === 'revenue-leak' ? 'Scanning 847 vendor records for anomalies…' : id === 'wire-transfer' ? 'Drafting wire transfer, verifying AML compliance…' : 'Querying 12 advisory board members…');
         addLog({ type: 'policy', message: `Policy gate PASS: ${id}.read_access` });
         addLog({ type: 'tool', message: `Tool call: ${id}.scan initiated` });
       } else if (step === 'findings') {
         tools.push({ id: `tc_${Date.now()}`, tool: `${id}.analyze`, args: {}, result: 'findings_ready', timestamp: ts });
         setAvatarState('CONFIRMING');
+        setNarration(id === 'revenue-leak' ? '5 anomalies found — $27,688 recoverable.' : id === 'wire-transfer' ? 'Risk score: 32%. Proceeding to dual-signature approval.' : 'Aggregating stances from 12 advisors…');
         addLog({ type: 'tool', message: `Tool call: ${id}.analyze → findings_ready` });
       } else if (step === 'approval') {
         gates.push({ verdict: 'ESCALATE', rule: 'wire_transfer.amount_threshold', timestamp: ts });
         setAvatarState('WARNING');
+        setAttackVisible(true);
         addLog({ type: 'policy', message: `Policy gate ESCALATE: wire_transfer.amount_threshold` });
       } else if (step === 'approved') {
         gates.push({ verdict: 'PASS', rule: `${id}.execute`, timestamp: ts });
@@ -138,6 +150,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
         wfReceipts.push(receipt);
         setReceipts(r => [...r, receipt]);
         setAvatarState('IDLE');
+        setNarration(`Receipt minted: ${receipt.receiptId.slice(0, 18)}… Cost: $${(receipt.costCents / 100).toFixed(2)}`);
         addLog({ type: 'receipt', message: `Receipt minted: ${receipt.receiptId.slice(0, 16)}…` });
       }
 
@@ -176,6 +189,9 @@ export function DemoProvider({ children }: { children: ReactNode }) {
     setActiveWorkflow(null);
     setAvatarState('IDLE');
     setActivityLog([]);
+    setNarration('');
+    setAttackVisible(false);
+    setShowCompletion(false);
   }, []);
 
   useEffect(() => {
@@ -185,16 +201,26 @@ export function DemoProvider({ children }: { children: ReactNode }) {
     }
   }, [avatarState]);
 
+  // Detect all workflows complete
+  useEffect(() => {
+    const allDone = (['revenue-leak', 'wire-transfer', 'board-briefing'] as WorkflowId[]).every(id => workflows[id].step === 'receipt');
+    if (allDone && receipts.length >= 3 && !showCompletion) {
+      setTimeout(() => setShowCompletion(true), 1500);
+    }
+  }, [workflows, receipts.length, showCompletion]);
+
   const value = useMemo<DemoState>(() => ({
     viewMode, resolvedMode, hasChosenMode, activeWorkflow, workflows, receipts,
-    avatarState, settings, autoplayActive, activityLog,
+    avatarState, settings, autoplayActive, activityLog, narration, attackVisible, showCompletion,
     chooseMode, setActiveWorkflow, advanceWorkflow, approveWire,
-    setAvatarState, updateSettings, resetDemo,
+    setAvatarState, updateSettings, resetDemo, setNarration, 
+    dismissAttack: () => setAttackVisible(false),
+    dismissCompletion: () => setShowCompletion(false),
     startAutoplay: () => setAutoplayActive(true),
     stopAutoplay: () => setAutoplayActive(false),
   }), [viewMode, resolvedMode, hasChosenMode, activeWorkflow, workflows, receipts,
-    avatarState, settings, autoplayActive, activityLog, chooseMode, advanceWorkflow, approveWire,
-    updateSettings, resetDemo]);
+    avatarState, settings, autoplayActive, activityLog, narration, attackVisible, showCompletion,
+    chooseMode, advanceWorkflow, approveWire, updateSettings, resetDemo]);
 
   return <DemoContext.Provider value={value}>{children}</DemoContext.Provider>;
 }

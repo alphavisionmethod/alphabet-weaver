@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useDemo } from '../../store';
-import { FINDINGS, WIRE_TRANSFER, ADVISORS } from '../../data';
+import { FINDINGS, WIRE_TRANSFER } from '../../data';
 import { FloatingCard } from '../ui/FloatingCard';
 import { PolicyBadge } from '../ui/PolicyBadge';
 import { SlideToApprove } from '../ui/SlideToApprove';
 import { ReceiptCard } from '../ui/ReceiptCard';
 import { Confetti } from '../ui/Confetti';
+import { AdvisorVoteAnimation } from '../ui/AdvisorVoteAnimation';
 import { Play, ArrowRight, AlertTriangle, DollarSign, Users, Loader2 } from 'lucide-react';
 import type { WorkflowId } from '../../types';
 import { useSoundEffects } from '../../hooks/useSoundEffects';
@@ -140,20 +141,9 @@ export function WorkflowPanel() {
               </FloatingCard>
             ))}
 
+            {/* Animated advisor voting for board briefing */}
             {activeWorkflow === 'board-briefing' && (
-              <div className="space-y-1.5">
-                {ADVISORS.map(a => (
-                  <FloatingCard key={a.id} depth={1}>
-                    <div className="flex items-center gap-2">
-                      <div className={`h-2 w-2 rounded-full ${a.stance === 'approve' ? 'bg-emerald-400' : a.stance === 'caution' ? 'bg-amber-400' : 'bg-red-400'}`} />
-                      <span className="text-[11px] font-medium text-foreground">{a.name}</span>
-                      <span className="text-[9px] text-muted-foreground">{a.role}</span>
-                      <span className="ml-auto text-[9px] text-muted-foreground">{Math.round(a.confidence * 100)}%</span>
-                    </div>
-                    <p className="text-[10px] text-muted-foreground mt-1 pl-4">{a.recommendation}</p>
-                  </FloatingCard>
-                ))}
-              </div>
+              <AdvisorVoteAnimation />
             )}
 
             {activeWorkflow === 'wire-transfer' && (

@@ -9,12 +9,24 @@ import { HologramView } from './views/HologramView';
 import { SessionProgress } from './ui/SessionProgress';
 import { ActivityTicker } from './ui/ActivityTicker';
 import { TimelineScrubber } from './ui/TimelineScrubber';
+import { NarrationBar } from './ui/NarrationBar';
+import { CostOdometer } from './ui/CostOdometer';
+import { AttackAlert } from './ui/AttackAlert';
+import { CompletionSummary } from './ui/CompletionSummary';
 import { Shield, RotateCcw, Home, Play, Keyboard } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import { useAutoplay } from '../hooks/useAutoplay';
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import ThemeToggle from '@/components/ThemeToggle';
+import type { ConnectorMode } from '../types';
+
+const CONNECTOR_MODES: ConnectorMode[] = ['SIM', 'SHADOW', 'REAL'];
+const CONNECTOR_STYLES: Record<ConnectorMode, string> = {
+  SIM: 'border-border/40 text-muted-foreground',
+  SHADOW: 'border-amber-500/40 text-amber-400',
+  REAL: 'border-red-500/40 text-red-400',
+};
 
 function ShortcutCheatSheet({ onClose }: { onClose: () => void }) {
   return (
@@ -47,12 +59,39 @@ function ShortcutCheatSheet({ onClose }: { onClose: () => void }) {
 }
 
 function DemoInner() {
-  const { hasChosenMode, resolvedMode, settings, resetDemo, autoplayActive, startAutoplay, stopAutoplay } = useDemo();
+  const {
+    hasChosenMode, resolvedMode, settings, resetDemo,
+    autoplayActive, startAutoplay, stopAutoplay,
+    narration, attackVisible, dismissAttack,
+    showCompletion, dismissCompletion,
+    receipts, workflows, updateSettings,
+  } = useDemo();
   const navigate = useNavigate();
   const [showShortcuts, setShowShortcuts] = useState(false);
 
   useKeyboardShortcuts();
   useAutoplay();
+
+  const totalCostCents = receipts.reduce((sum, r) => sum + r.costCents, 0);
+
+  const cycleConnectorMode = useCallback(() => {
+    const idx = CONNECTOR_MODES.indexOf(settings.connectorMode);
+    const next = CONNECTOR_MODES[(idx + 1) % CONNECTOR_MODES.length];
+    updateSettings({ connectorMode: next });
+  }, [settings.connectorMode, updateSettings]);
+
+  const completionStats = {
+    workflows: 3,
+    totalCostCents,
+    policyGates: Object.values(workflows).reduce((s, w) => s + w.policyGates.length, 0),
+    receipts: receipts.length,
+    decisionsValue: '$52,188',
+  };
+
+  const handleCompletionReset = useCallback(() => {
+    dismissCompletion();
+    setTimeout(resetDemo, 300);
+  }, [dismissCompletion, resetDemo]);
 
   return (
     <div className="h-screen w-screen overflow-hidden bg-background text-foreground flex flex-col">
@@ -71,12 +110,29 @@ function DemoInner() {
             </div>
 
             <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2">
-              <span className="px-2 py-0.5 rounded-full border border-border/40 text-[9px] font-semibold text-muted-foreground tracking-wider">
+              {/* Interactive connector mode toggle */}
+              <button
+                onClick={cycleConnectorMode}
+                className={`px-2 py-0.5 rounded-full border text-[9px] font-semibold tracking-wider transition-all cursor-pointer hover:scale-105 ${CONNECTOR_STYLES[settings.connectorMode]}`}
+                title="Click to cycle: SIM → SHADOW → REAL"
+              >
                 {settings.connectorMode}
-              </span>
+              </button>
+              {settings.connectorMode === 'REAL' && (
+                <motion.span
+                  initial={{ opacity: 0, x: -5 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="text-[8px] text-red-400/80"
+                >
+                  ⚠ Live actions
+                </motion.span>
+              )}
             </div>
 
             <div className="flex items-center gap-1.5">
+              {/* Cost odometer */}
+              <CostOdometer cents={totalCostCents} />
+
               {/* Autoplay toggle */}
               <button
                 onClick={autoplayActive ? stopAutoplay : startAutoplay}
@@ -108,10 +164,16 @@ function DemoInner() {
             </div>
           </div>
 
+          {/* Narration bar */}
+          <NarrationBar text={narration} />
+
           {/* Shortcut cheat sheet */}
           <AnimatePresence>
             {showShortcuts && <ShortcutCheatSheet onClose={() => setShowShortcuts(false)} />}
           </AnimatePresence>
+
+          {/* Attack alert */}
+          <AttackAlert visible={attackVisible} onDismiss={dismissAttack} />
 
           {/* Main content area */}
           <div className="flex-1 relative overflow-hidden">
@@ -137,6 +199,13 @@ function DemoInner() {
 
           {/* Activity ticker */}
           <ActivityTicker />
+
+          {/* Completion summary */}
+          <CompletionSummary
+            visible={showCompletion}
+            stats={completionStats}
+            onReset={handleCompletionReset}
+          />
         </>
       )}
     </div>
