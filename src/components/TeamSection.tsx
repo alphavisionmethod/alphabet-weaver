@@ -4,25 +4,18 @@ import { Linkedin } from "lucide-react";
 
 const founders = [
   {
-    name: "Founder Name",
+    name: "Isabela Londono",
     role: "CEO & Co-Founder",
     bio: "Vision, strategy, and governance architecture.",
     linkedin: "#",
-    initials: "FN",
+    initials: "IL",
   },
   {
-    name: "Co-Founder Name",
+    name: "Daniela Wild",
     role: "CTO & Co-Founder",
     bio: "Systems engineering, AI safety, and infrastructure.",
     linkedin: "#",
-    initials: "CF",
-  },
-  {
-    name: "Advisor Name",
-    role: "Chief Science Officer",
-    bio: "Machine learning, adversarial robustness, and trust systems.",
-    linkedin: "#",
-    initials: "AN",
+    initials: "DW",
   },
 ];
 
